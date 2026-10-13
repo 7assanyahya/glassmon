@@ -88,11 +88,26 @@ impl Widget for Modal<'_> {
                     ]),
                     Line::from(""),
                     Line::from(vec![
-                        Span::styled("  [Enter] ", Style::default().fg(self.theme.cyan).add_modifier(Modifier::BOLD)),
+                        Span::styled(
+                            "  [Enter] ",
+                            Style::default()
+                                .fg(self.theme.cyan)
+                                .add_modifier(Modifier::BOLD),
+                        ),
                         Span::raw("Confirm   "),
-                        Span::styled("  [Shift+K] ", Style::default().fg(self.theme.red).add_modifier(Modifier::BOLD)),
+                        Span::styled(
+                            "  [Shift+K] ",
+                            Style::default()
+                                .fg(self.theme.red)
+                                .add_modifier(Modifier::BOLD),
+                        ),
                         Span::raw("Switch to SIGKILL   "),
-                        Span::styled("  [Esc] ", Style::default().fg(self.theme.secondary).add_modifier(Modifier::BOLD)),
+                        Span::styled(
+                            "  [Esc] ",
+                            Style::default()
+                                .fg(self.theme.secondary)
+                                .add_modifier(Modifier::BOLD),
+                        ),
                         Span::raw("Cancel"),
                     ]),
                 ];
@@ -128,9 +143,19 @@ impl Widget for Modal<'_> {
                     ]),
                     Line::from(""),
                     Line::from(vec![
-                        Span::styled("  [Enter] ", Style::default().fg(self.theme.cyan).add_modifier(Modifier::BOLD)),
+                        Span::styled(
+                            "  [Enter] ",
+                            Style::default()
+                                .fg(self.theme.cyan)
+                                .add_modifier(Modifier::BOLD),
+                        ),
                         Span::raw("Unmount   "),
-                        Span::styled("  [Esc] ", Style::default().fg(self.theme.secondary).add_modifier(Modifier::BOLD)),
+                        Span::styled(
+                            "  [Esc] ",
+                            Style::default()
+                                .fg(self.theme.secondary)
+                                .add_modifier(Modifier::BOLD),
+                        ),
                         Span::raw("Cancel"),
                     ]),
                 ];
@@ -160,7 +185,10 @@ impl Widget for Modal<'_> {
 
                 let help_entries = [
                     ("Tab / Shift+Tab", "Next / Previous page"),
-                    ("1 - 6", "Jump to page (Overview, Procs, Net, Disks, HW, Device)"),
+                    (
+                        "1 - 6",
+                        "Jump to page (Overview, Procs, Net, Disks, HW, Device)",
+                    ),
                     ("t", "Toggle Dark / Light theme"),
                     ("p", "Pause / resume sampling"),
                     ("q / Ctrl+C", "Quit application"),
@@ -177,7 +205,10 @@ impl Widget for Modal<'_> {
                     ("h / l", "Switch storage drive / volume"),
                     ("e", "Eject / unmount selected volume"),
                     ("u", "Toggle Celsius / Fahrenheit"),
-                    ("Mouse click / scroll", "Click tabs, scroll lists, select rows"),
+                    (
+                        "Mouse click / scroll",
+                        "Click tabs, scroll lists, select rows",
+                    ),
                 ];
 
                 let mut lines = Vec::new();
@@ -194,12 +225,10 @@ impl Widget for Modal<'_> {
                     ]));
                 }
                 lines.push(Line::from(""));
-                lines.push(Line::from(vec![
-                    Span::styled(
-                        "  Press [Esc] or [?] to close",
-                        Style::default().fg(self.theme.secondary),
-                    ),
-                ]));
+                lines.push(Line::from(vec![Span::styled(
+                    "  Press [Esc] or [?] to close",
+                    Style::default().fg(self.theme.secondary),
+                )]));
 
                 Paragraph::new(lines).block(block).render(modal_area, buf);
             }

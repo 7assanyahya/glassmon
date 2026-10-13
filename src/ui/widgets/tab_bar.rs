@@ -83,10 +83,7 @@ impl Widget for TabBar<'_> {
 
         // Render clock on right
         let now = Local::now().format("%H:%M:%S").to_string();
-        let clock_span = Span::styled(
-            format!("{now} "),
-            Style::default().fg(self.theme.secondary),
-        );
+        let clock_span = Span::styled(format!("{now} "), Style::default().fg(self.theme.secondary));
         let clock_len = now.len() as u16 + 1;
         if area.width > clock_len {
             let clock_x = area.x + area.width - clock_len;

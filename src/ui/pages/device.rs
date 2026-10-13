@@ -65,7 +65,12 @@ fn render_chassis_view(app: &App, snapshot: &Snapshot, area: Rect, buf: &mut Buf
 
 fn render_edge_strip(app: &App, snapshot: &Snapshot, side: Side, area: Rect, buf: &mut Buffer) {
     let theme = &app.theme;
-    let side_ports: Vec<_> = snapshot.ports.ports.iter().filter(|p| p.side == side).collect();
+    let side_ports: Vec<_> = snapshot
+        .ports
+        .ports
+        .iter()
+        .filter(|p| p.side == side)
+        .collect();
     if side_ports.is_empty() {
         return;
     }
@@ -105,7 +110,10 @@ fn render_edge_strip(app: &App, snapshot: &Snapshot, side: Side, area: Rect, buf
         let badge_line = Line::from(vec![
             Span::styled(
                 format!(" [ {} ] ", port.index),
-                Style::default().bg(badge_bg).fg(badge_fg).add_modifier(Modifier::BOLD),
+                Style::default()
+                    .bg(badge_bg)
+                    .fg(badge_fg)
+                    .add_modifier(Modifier::BOLD),
             ),
             Span::styled(
                 format!(" {}", port.kind.short()),
@@ -172,14 +180,31 @@ fn render_machine_ascii(app: &App, _snapshot: &Snapshot, area: Rect, buf: &mut B
     let legend_y = start_y + screen_art.len() as u16 + 1;
     if legend_y + 1 < area.y + area.height {
         let leg_line = Line::from(vec![
-            Span::styled(" [ 1 ] ", Style::default().bg(theme.green).fg(Color::Black).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                " [ 1 ] ",
+                Style::default()
+                    .bg(theme.green)
+                    .fg(Color::Black)
+                    .add_modifier(Modifier::BOLD),
+            ),
             Span::styled(" In Use   ", Style::default().fg(theme.secondary)),
-            Span::styled(" [ 2 ] ", Style::default().bg(theme.empty_track).fg(theme.secondary)),
+            Span::styled(
+                " [ 2 ] ",
+                Style::default().bg(theme.empty_track).fg(theme.secondary),
+            ),
             Span::styled(" Disconnected   ", Style::default().fg(theme.secondary)),
-            Span::styled(" [Key 1-7] ", Style::default().fg(theme.blue).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                " [Key 1-7] ",
+                Style::default().fg(theme.blue).add_modifier(Modifier::BOLD),
+            ),
             Span::styled("Select port", Style::default().fg(theme.secondary)),
         ]);
-        buf.set_line(area.x + 2, legend_y, &leg_line, area.width.saturating_sub(4));
+        buf.set_line(
+            area.x + 2,
+            legend_y,
+            &leg_line,
+            area.width.saturating_sub(4),
+        );
     }
 }
 
@@ -203,9 +228,21 @@ fn render_compact_port_list(app: &App, snapshot: &Snapshot, area: Rect, buf: &mu
         };
 
         let line = Line::from(vec![
-            Span::styled(format!(" [{}] ", port.index), Style::default().bg(badge_bg).fg(Color::White).add_modifier(Modifier::BOLD)),
-            Span::styled(format!(" {:<18} ", port.name), Style::default().fg(theme.text).add_modifier(Modifier::BOLD)),
-            Span::styled(port.device.as_deref().unwrap_or("Disconnected"), Style::default().fg(if in_use { theme.cyan } else { theme.secondary })),
+            Span::styled(
+                format!(" [{}] ", port.index),
+                Style::default()
+                    .bg(badge_bg)
+                    .fg(Color::White)
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::styled(
+                format!(" {:<18} ", port.name),
+                Style::default().fg(theme.text).add_modifier(Modifier::BOLD),
+            ),
+            Span::styled(
+                port.device.as_deref().unwrap_or("Disconnected"),
+                Style::default().fg(if in_use { theme.cyan } else { theme.secondary }),
+            ),
         ]);
 
         buf.set_line(area.x, y, &line, area.width);
@@ -252,12 +289,31 @@ fn render_ports_table(app: &App, snapshot: &Snapshot, area: Rect, buf: &mut Buff
         };
 
         let badge_str = format!(" [{}] ", port.index);
-        let dev_str = port.device.as_deref().or(port.speed.as_deref()).unwrap_or("Empty");
+        let dev_str = port
+            .device
+            .as_deref()
+            .or(port.speed.as_deref())
+            .unwrap_or("Empty");
 
         let mut line = Line::from(vec![
-            Span::styled(badge_str, Style::default().fg(if is_selected { Color::White } else { theme.cyan }).add_modifier(Modifier::BOLD)),
-            Span::styled(format!("{:<16} ", units::truncate(&port.name, 16)), Style::default().add_modifier(Modifier::BOLD)),
-            Span::styled(units::truncate(dev_str, inner.width.saturating_sub(24) as usize), Style::default().fg(if in_use { theme.green } else { theme.secondary })),
+            Span::styled(
+                badge_str,
+                Style::default()
+                    .fg(if is_selected {
+                        Color::White
+                    } else {
+                        theme.cyan
+                    })
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::styled(
+                format!("{:<16} ", units::truncate(&port.name, 16)),
+                Style::default().add_modifier(Modifier::BOLD),
+            ),
+            Span::styled(
+                units::truncate(dev_str, inner.width.saturating_sub(24) as usize),
+                Style::default().fg(if in_use { theme.green } else { theme.secondary }),
+            ),
         ]);
         line = line.style(row_style);
 
@@ -294,18 +350,46 @@ fn render_health_grid(app: &App, snapshot: &Snapshot, area: Rect, buf: &mut Buff
 
     // Tile 1: Thermals
     let max_temp = snapshot.sensors.max_temp().unwrap_or(45.0);
-    render_health_tile("Thermals", &units::temp(max_temp, app.fahrenheit), "Normal range", theme.green, top_cols[0], buf, theme);
+    render_health_tile(
+        "Thermals",
+        &units::temp(max_temp, app.fahrenheit),
+        "Normal range",
+        theme.green,
+        top_cols[0],
+        buf,
+        theme,
+    );
 
     // Tile 2: Battery
     let (bat_val, bat_sub, bat_col) = if let Some(bat) = &snapshot.battery {
-        (format!("{:.0}%", bat.percent), bat.condition.clone().unwrap_or_else(|| "Healthy".into()), theme.green)
+        (
+            format!("{:.0}%", bat.percent),
+            bat.condition.clone().unwrap_or_else(|| "Healthy".into()),
+            theme.green,
+        )
     } else {
         ("AC".into(), "Desk Power".into(), theme.cyan)
     };
-    render_health_tile("Battery", &bat_val, &bat_sub, bat_col, top_cols[1], buf, theme);
+    render_health_tile(
+        "Battery",
+        &bat_val,
+        &bat_sub,
+        bat_col,
+        top_cols[1],
+        buf,
+        theme,
+    );
 
     // Tile 3: SSD
-    render_health_tile("Storage SSD", "Verified", "100% Spare", theme.green, bot_cols[0], buf, theme);
+    render_health_tile(
+        "Storage SSD",
+        "Verified",
+        "100% Spare",
+        theme.green,
+        bot_cols[0],
+        buf,
+        theme,
+    );
 
     // Tile 4: Fans
     let fans_sub = if snapshot.sensors.fans.is_empty() {
@@ -313,7 +397,15 @@ fn render_health_grid(app: &App, snapshot: &Snapshot, area: Rect, buf: &mut Buff
     } else {
         "Active cooling"
     };
-    render_health_tile("Fans", "Optimal", fans_sub, theme.cyan, bot_cols[1], buf, theme);
+    render_health_tile(
+        "Fans",
+        "Optimal",
+        fans_sub,
+        theme.cyan,
+        bot_cols[1],
+        buf,
+        theme,
+    );
 }
 
 fn render_health_tile(
@@ -339,7 +431,10 @@ fn render_health_tile(
     if inner.height >= 2 {
         let line1 = Line::from(vec![
             Span::styled(format!("{title}: "), Style::default().fg(theme.secondary)),
-            Span::styled(value, Style::default().fg(accent).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                value,
+                Style::default().fg(accent).add_modifier(Modifier::BOLD),
+            ),
         ]);
         let line2 = Line::from(Span::styled(sub, Style::default().fg(theme.secondary)));
 

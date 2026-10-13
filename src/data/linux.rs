@@ -128,7 +128,8 @@ pub fn read_hwmon() -> (Vec<TempSensor>, Vec<Fan>) {
                                 history: vec![celsius; HISTORY_LEN],
                             });
                         }
-                    } else if file_name.starts_with("fan") && file_name.ends_with("_input")
+                    } else if file_name.starts_with("fan")
+                        && file_name.ends_with("_input")
                         && let Ok(content) = fs::read_to_string(sub.path())
                         && let Ok(rpm) = content.trim().parse::<u32>()
                     {

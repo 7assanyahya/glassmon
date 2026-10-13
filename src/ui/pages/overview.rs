@@ -58,9 +58,9 @@ fn render_cpu_card(app: &App, snapshot: &Snapshot, area: Rect, buf: &mut Buffer)
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(1), // Overall stats
+            Constraint::Length(1),                                     // Overall stats
             Constraint::Length(inner.height.saturating_sub(6).min(4)), // Sparkline
-            Constraint::Min(2),    // Cores grid
+            Constraint::Min(2),                                        // Cores grid
         ])
         .split(inner);
 
@@ -161,18 +161,34 @@ fn render_mem_card(app: &App, snapshot: &Snapshot, area: Rect, buf: &mut Buffer)
 
     // RAM line
     lines.push(Line::from(vec![
-        Span::styled("RAM   ", Style::default().fg(theme.text).add_modifier(Modifier::BOLD)),
         Span::styled(
-            format!("{}/{} ({:.1}%)", units::bytes_bin(mem.used), units::bytes_bin(mem.total), ram_pct),
+            "RAM   ",
+            Style::default().fg(theme.text).add_modifier(Modifier::BOLD),
+        ),
+        Span::styled(
+            format!(
+                "{}/{} ({:.1}%)",
+                units::bytes_bin(mem.used),
+                units::bytes_bin(mem.total),
+                ram_pct
+            ),
             Style::default().fg(theme.secondary),
         ),
     ]));
 
     // Swap line
     lines.push(Line::from(vec![
-        Span::styled("Swap  ", Style::default().fg(theme.text).add_modifier(Modifier::BOLD)),
         Span::styled(
-            format!("{}/{} ({:.1}%)", units::bytes_bin(mem.swap_used), units::bytes_bin(mem.swap_total), swap_pct),
+            "Swap  ",
+            Style::default().fg(theme.text).add_modifier(Modifier::BOLD),
+        ),
+        Span::styled(
+            format!(
+                "{}/{} ({:.1}%)",
+                units::bytes_bin(mem.swap_used),
+                units::bytes_bin(mem.swap_total),
+                swap_pct
+            ),
             Style::default().fg(swap_col),
         ),
     ]));
@@ -180,11 +196,11 @@ fn render_mem_card(app: &App, snapshot: &Snapshot, area: Rect, buf: &mut Buffer)
     if let Some(press) = mem.pressure {
         let press_col = theme.usage_color(press as f64);
         lines.push(Line::from(vec![
-            Span::styled("Press ", Style::default().fg(theme.text).add_modifier(Modifier::BOLD)),
             Span::styled(
-                format!("{press:.0}%"),
-                Style::default().fg(press_col),
+                "Press ",
+                Style::default().fg(theme.text).add_modifier(Modifier::BOLD),
             ),
+            Span::styled(format!("{press:.0}%"), Style::default().fg(press_col)),
         ]));
     }
 
@@ -237,7 +253,11 @@ fn render_net_card(app: &App, snapshot: &Snapshot, area: Rect, buf: &mut Buffer)
             width: inner.width,
             height: inner.height.saturating_sub(1),
         };
-        let u64_rx: Vec<u64> = net.rx_history.iter().map(|&v| (v / 1024.0) as u64).collect();
+        let u64_rx: Vec<u64> = net
+            .rx_history
+            .iter()
+            .map(|&v| (v / 1024.0) as u64)
+            .collect();
         Sparkline::new(&u64_rx, theme.green).render(spark_rect, buf);
     }
 }
@@ -272,9 +292,12 @@ fn render_proc_table(app: &App, snapshot: &Snapshot, area: Rect, buf: &mut Buffe
         return;
     }
 
-    let header_cells = ["PID", "NAME", "USER", "CPU%", "MEM"]
-        .into_iter()
-        .map(|h| Cell::from(Span::styled(h, Style::default().fg(theme.cyan).add_modifier(Modifier::BOLD))));
+    let header_cells = ["PID", "NAME", "USER", "CPU%", "MEM"].into_iter().map(|h| {
+        Cell::from(Span::styled(
+            h,
+            Style::default().fg(theme.cyan).add_modifier(Modifier::BOLD),
+        ))
+    });
     let header = Row::new(header_cells).height(1);
 
     let rows: Vec<Row> = snapshot
@@ -286,9 +309,15 @@ fn render_proc_table(app: &App, snapshot: &Snapshot, area: Rect, buf: &mut Buffe
             let user_str = p.user.as_deref().unwrap_or("-");
             Row::new(vec![
                 Cell::from(format!("{}", p.pid)),
-                Cell::from(Span::styled(units::truncate(&p.name, 18), Style::default().add_modifier(Modifier::BOLD))),
+                Cell::from(Span::styled(
+                    units::truncate(&p.name, 18),
+                    Style::default().add_modifier(Modifier::BOLD),
+                )),
                 Cell::from(units::truncate(user_str, 12)),
-                Cell::from(Span::styled(format!("{:.1}%", p.cpu), Style::default().fg(cpu_col))),
+                Cell::from(Span::styled(
+                    format!("{:.1}%", p.cpu),
+                    Style::default().fg(cpu_col),
+                )),
                 Cell::from(units::bytes(p.memory)),
             ])
             .style(Style::default().fg(theme.text))
@@ -318,13 +347,24 @@ fn render_disk_mini(app: &App, snapshot: &Snapshot, area: Rect, buf: &mut Buffer
     }
 
     let mut y = inner.y;
-    for vol in snapshot.disks.volumes.iter().take(inner.height as usize / 2) {
+    for vol in snapshot
+        .disks
+        .volumes
+        .iter()
+        .take(inner.height as usize / 2)
+    {
         if y >= inner.y + inner.height {
             break;
         }
         let line = Line::from(vec![
-            Span::styled(format!("{:<14} ", units::truncate(&vol.name, 14)), Style::default().fg(theme.text).add_modifier(Modifier::BOLD)),
-            Span::styled(format!("{} / {}", units::bytes(vol.used()), units::bytes(vol.total)), Style::default().fg(theme.secondary)),
+            Span::styled(
+                format!("{:<14} ", units::truncate(&vol.name, 14)),
+                Style::default().fg(theme.text).add_modifier(Modifier::BOLD),
+            ),
+            Span::styled(
+                format!("{} / {}", units::bytes(vol.used()), units::bytes(vol.total)),
+                Style::default().fg(theme.secondary),
+            ),
         ]);
         buf.set_line(inner.x, y, &line, inner.width);
         y += 1;
@@ -362,8 +402,14 @@ fn render_sensor_mini(app: &App, snapshot: &Snapshot, area: Rect, buf: &mut Buff
         let col = theme.temp_color(sensor.celsius);
         let temp_str = units::temp(sensor.celsius, app.fahrenheit);
         let line = Line::from(vec![
-            Span::styled(format!("{:<16} ", units::truncate(&sensor.label, 16)), Style::default().fg(theme.text)),
-            Span::styled(temp_str, Style::default().fg(col).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                format!("{:<16} ", units::truncate(&sensor.label, 16)),
+                Style::default().fg(theme.text),
+            ),
+            Span::styled(
+                temp_str,
+                Style::default().fg(col).add_modifier(Modifier::BOLD),
+            ),
         ]);
         buf.set_line(inner.x, y, &line, inner.width);
         y += 1;

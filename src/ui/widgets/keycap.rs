@@ -1,8 +1,8 @@
 //! Keycap chip widgets for footers and shortcuts.
 
+use crate::ui::theme::Theme;
 use ratatui::style::{Modifier, Style};
 use ratatui::text::Span;
-use crate::ui::theme::Theme;
 
 pub struct Keycap;
 
@@ -18,10 +18,7 @@ impl Keycap {
                     .fg(theme.text)
                     .add_modifier(Modifier::BOLD),
             ),
-            Span::styled(
-                format!(" {label} "),
-                Style::default().fg(theme.secondary),
-            ),
+            Span::styled(format!(" {label} "), Style::default().fg(theme.secondary)),
         ]
     }
 }

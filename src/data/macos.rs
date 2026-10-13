@@ -58,7 +58,10 @@ impl Collector for MacOsCollector {
     fn sample(&mut self, needs: &Needs) -> Snapshot {
         // Slow timer: refresh system_profiler every 30 seconds if on hardware/device page
         if (needs.hardware || needs.disk_details)
-            && self.last_profiler_run.map(|t| t.elapsed() > Duration::from_secs(30)).unwrap_or(true)
+            && self
+                .last_profiler_run
+                .map(|t| t.elapsed() > Duration::from_secs(30))
+                .unwrap_or(true)
         {
             self.refresh_slow_data();
         }
@@ -113,10 +116,7 @@ fn query_pe_cores() -> (Option<usize>, Option<usize>) {
 }
 
 fn query_sysctl_u32(name: &str) -> Option<u32> {
-    let output = Command::new("sysctl")
-        .args(["-n", name])
-        .output()
-        .ok()?;
+    let output = Command::new("sysctl").args(["-n", name]).output().ok()?;
     if output.status.success() {
         let s = String::from_utf8_lossy(&output.stdout).trim().to_string();
         s.parse::<u32>().ok()
@@ -143,7 +143,8 @@ fn run_system_profiler() -> Result<serde_json::Value, std::io::Error> {
         ])
         .output()?;
 
-    serde_json::from_slice(&output.stdout).map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))
+    serde_json::from_slice(&output.stdout)
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))
 }
 
 pub fn parse_profiler_json(json: &serde_json::Value) -> (HardwareInfo, PortStats, Vec<SmartInfo>) {
@@ -154,8 +155,14 @@ pub fn parse_profiler_json(json: &serde_json::Value) -> (HardwareInfo, PortStats
     if let Some(arr) = json.get("SPHardwareDataType").and_then(|v| v.as_array())
         && let Some(obj) = arr.first()
     {
-        hw.model_name = obj.get("machine_name").and_then(|v| v.as_str()).map(Into::into);
-        hw.model_id = obj.get("machine_model").and_then(|v| v.as_str()).map(Into::into);
+        hw.model_name = obj
+            .get("machine_name")
+            .and_then(|v| v.as_str())
+            .map(Into::into);
+        hw.model_id = obj
+            .get("machine_model")
+            .and_then(|v| v.as_str())
+            .map(Into::into);
         hw.chip = obj.get("cpu_type").and_then(|v| v.as_str()).map(Into::into);
     }
 
@@ -165,8 +172,14 @@ pub fn parse_profiler_json(json: &serde_json::Value) -> (HardwareInfo, PortStats
             if let Some(disp_arr) = card.get("spdisplays_ndrvs").and_then(|v| v.as_array())
                 && let Some(disp) = disp_arr.first()
             {
-                let name = disp.get("_name").and_then(|v| v.as_str()).unwrap_or("Built-in Display");
-                let res = disp.get("_spdisplays_pixels").and_then(|v| v.as_str()).unwrap_or("");
+                let name = disp
+                    .get("_name")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("Built-in Display");
+                let res = disp
+                    .get("_spdisplays_pixels")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("");
                 hw.display = Some(format!("{name} ({res})"));
                 break;
             }
@@ -178,7 +191,10 @@ pub fn parse_profiler_json(json: &serde_json::Value) -> (HardwareInfo, PortStats
         for ctrl in arr {
             if let Some(items) = ctrl.get("_items").and_then(|v| v.as_array()) {
                 for item in items {
-                    let name = item.get("_name").and_then(|v| v.as_str()).unwrap_or("Internal SSD");
+                    let name = item
+                        .get("_name")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("Internal SSD");
                     let status = match item.get("smart_status").and_then(|v| v.as_str()) {
                         Some("Verified") => HealthStatus::Verified,
                         Some(_) => HealthStatus::Warning,
@@ -223,7 +239,10 @@ fn map_mac_ports(model_id: &str) -> PortStats {
     let id_lower = model_id.to_lowercase();
 
     // MacBook Pro 14" / 16" (Mac15,* or MacBookPro18,*)
-    if id_lower.contains("mac15,") || id_lower.contains("macbookpro18") || id_lower.contains("macbookpro17") {
+    if id_lower.contains("mac15,")
+        || id_lower.contains("macbookpro18")
+        || id_lower.contains("macbookpro17")
+    {
         PortStats {
             layout_name: format!("{model_id} (MacBook Pro)"),
             known_layout: true,
@@ -311,7 +330,11 @@ fn map_mac_ports(model_id: &str) -> PortStats {
     } else {
         // Generic fallback port layout
         PortStats {
-            layout_name: if model_id.is_empty() { "Generic Host".into() } else { model_id.into() },
+            layout_name: if model_id.is_empty() {
+                "Generic Host".into()
+            } else {
+                model_id.into()
+            },
             known_layout: false,
             form: DeviceForm::Laptop,
             ports: vec![

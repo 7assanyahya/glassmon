@@ -81,10 +81,7 @@ impl Widget for ToastWidget<'_> {
                     .fg(border_color)
                     .add_modifier(Modifier::BOLD),
             ),
-            Span::styled(
-                &self.toast.message,
-                Style::default().fg(self.theme.text),
-            ),
+            Span::styled(&self.toast.message, Style::default().fg(self.theme.text)),
         ]);
 
         Paragraph::new(line).block(block).render(toast_area, buf);

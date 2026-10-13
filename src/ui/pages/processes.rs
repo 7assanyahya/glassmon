@@ -32,21 +32,39 @@ fn render_filter_bar(app: &App, snapshot: &Snapshot, area: Rect, buf: &mut Buffe
     let theme = &app.theme;
     let mut spans = Vec::new();
 
-    spans.push(Span::styled(" Total: ", Style::default().fg(theme.secondary)));
     spans.push(Span::styled(
-        format!("{} ", snapshot.host.process_count.max(snapshot.processes.len())),
+        " Total: ",
+        Style::default().fg(theme.secondary),
+    ));
+    spans.push(Span::styled(
+        format!(
+            "{} ",
+            snapshot.host.process_count.max(snapshot.processes.len())
+        ),
         Style::default().fg(theme.text).add_modifier(Modifier::BOLD),
     ));
 
-    spans.push(Span::styled(" Sort: ", Style::default().fg(theme.secondary)));
-    let sort_dir = if app.process_sort_reverse { "▲" } else { "▼" };
+    spans.push(Span::styled(
+        " Sort: ",
+        Style::default().fg(theme.secondary),
+    ));
+    let sort_dir = if app.process_sort_reverse {
+        "▲"
+    } else {
+        "▼"
+    };
     spans.push(Span::styled(
         format!("{} {sort_dir} ", app.process_sort.label()),
         Style::default().fg(theme.cyan).add_modifier(Modifier::BOLD),
     ));
 
     if app.filter_active || !app.process_filter.is_empty() {
-        spans.push(Span::styled(" Filter: ", Style::default().fg(theme.orange).add_modifier(Modifier::BOLD)));
+        spans.push(Span::styled(
+            " Filter: ",
+            Style::default()
+                .fg(theme.orange)
+                .add_modifier(Modifier::BOLD),
+        ));
         let cursor = if app.filter_active { "█" } else { "" };
         spans.push(Span::styled(
             format!("\"{}\"{cursor} ", app.process_filter),
@@ -73,23 +91,33 @@ fn render_table(app: &App, snapshot: &Snapshot, area: Rect, buf: &mut Buffer) {
     }
 
     // Filter and sort processes
-    let mut procs: Vec<_> = snapshot.processes.iter().filter(|p| {
-        if app.process_filter.is_empty() {
-            true
-        } else {
-            let q = app.process_filter.to_lowercase();
-            p.name.to_lowercase().contains(&q)
-                || p.command.to_lowercase().contains(&q)
-                || p.user.as_deref().unwrap_or("").to_lowercase().contains(&q)
-                || p.pid.to_string().contains(&q)
-        }
-    }).collect();
+    let mut procs: Vec<_> = snapshot
+        .processes
+        .iter()
+        .filter(|p| {
+            if app.process_filter.is_empty() {
+                true
+            } else {
+                let q = app.process_filter.to_lowercase();
+                p.name.to_lowercase().contains(&q)
+                    || p.command.to_lowercase().contains(&q)
+                    || p.user.as_deref().unwrap_or("").to_lowercase().contains(&q)
+                    || p.pid.to_string().contains(&q)
+            }
+        })
+        .collect();
 
     match app.process_sort {
-        ProcessSort::Cpu => procs.sort_by(|a, b| b.cpu.partial_cmp(&a.cpu).unwrap_or(std::cmp::Ordering::Equal)),
+        ProcessSort::Cpu => procs.sort_by(|a, b| {
+            b.cpu
+                .partial_cmp(&a.cpu)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        }),
         ProcessSort::Memory => procs.sort_by(|a, b| b.memory.cmp(&a.memory)),
         ProcessSort::Pid => procs.sort_by(|a, b| a.pid.cmp(&b.pid)),
-        ProcessSort::Name => procs.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase())),
+        ProcessSort::Name => {
+            procs.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()))
+        }
     }
 
     if app.process_sort_reverse {
@@ -115,9 +143,13 @@ fn render_table(app: &App, snapshot: &Snapshot, area: Rect, buf: &mut Buffer) {
             ProcessSort::Name => *h == "NAME",
         };
         let style = if is_sorted {
-            Style::default().fg(theme.cyan).add_modifier(Modifier::BOLD | Modifier::UNDERLINED)
+            Style::default()
+                .fg(theme.cyan)
+                .add_modifier(Modifier::BOLD | Modifier::UNDERLINED)
         } else {
-            Style::default().fg(theme.secondary).add_modifier(Modifier::BOLD)
+            Style::default()
+                .fg(theme.secondary)
+                .add_modifier(Modifier::BOLD)
         };
         Cell::from(Span::styled(*h, style))
     });
@@ -155,13 +187,19 @@ fn render_table(app: &App, snapshot: &Snapshot, area: Rect, buf: &mut Buffer) {
             };
 
             let user_str = p.user.as_deref().unwrap_or("-");
-            let threads_str = p.threads.map(|t| t.to_string()).unwrap_or_else(|| "-".into());
+            let threads_str = p
+                .threads
+                .map(|t| t.to_string())
+                .unwrap_or_else(|| "-".into());
 
             Row::new(vec![
                 Cell::from(format!("{}", p.pid)),
                 Cell::from(units::truncate(&p.name, 18)),
                 Cell::from(units::truncate(user_str, 10)),
-                Cell::from(Span::styled(format!("{:.1}%", p.cpu), Style::default().fg(cpu_col))),
+                Cell::from(Span::styled(
+                    format!("{:.1}%", p.cpu),
+                    Style::default().fg(cpu_col),
+                )),
                 Cell::from(units::bytes(p.memory)),
                 Cell::from(threads_str),
                 Cell::from(p.state.clone()),

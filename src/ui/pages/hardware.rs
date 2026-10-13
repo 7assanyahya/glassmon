@@ -59,12 +59,48 @@ fn render_system_card(app: &App, snapshot: &Snapshot, area: Rect, buf: &mut Buff
     let entries = [
         ("Model", hw.model_name.as_deref().unwrap_or("MacBook Pro")),
         ("Identifier", hw.model_id.as_deref().unwrap_or("Unknown")),
-        ("Processor", hw.chip.as_deref().or(snapshot.cpu.brand.as_deref()).unwrap_or("Apple Silicon")),
-        ("CPU Cores", &hw.cores.map(|c| format!("{} ({}P + {}E)", c.total, c.performance.unwrap_or(0), c.efficiency.unwrap_or(0))).unwrap_or_else(|| format!("{}", snapshot.cpu.cores.len()))),
-        ("GPU Cores", &hw.gpu_cores.map(|g| format!("{g} Cores")).unwrap_or_else(|| "Integrated".into())),
-        ("Memory", &units::bytes_bin(hw.memory_total.unwrap_or(snapshot.memory.total))),
-        ("Display", hw.display.as_deref().unwrap_or("Built-in Display")),
-        ("Uptime", &snapshot.host.uptime_secs.map(units::duration).unwrap_or_else(|| "-".into())),
+        (
+            "Processor",
+            hw.chip
+                .as_deref()
+                .or(snapshot.cpu.brand.as_deref())
+                .unwrap_or("Apple Silicon"),
+        ),
+        (
+            "CPU Cores",
+            &hw.cores
+                .map(|c| {
+                    format!(
+                        "{} ({}P + {}E)",
+                        c.total,
+                        c.performance.unwrap_or(0),
+                        c.efficiency.unwrap_or(0)
+                    )
+                })
+                .unwrap_or_else(|| format!("{}", snapshot.cpu.cores.len())),
+        ),
+        (
+            "GPU Cores",
+            &hw.gpu_cores
+                .map(|g| format!("{g} Cores"))
+                .unwrap_or_else(|| "Integrated".into()),
+        ),
+        (
+            "Memory",
+            &units::bytes_bin(hw.memory_total.unwrap_or(snapshot.memory.total)),
+        ),
+        (
+            "Display",
+            hw.display.as_deref().unwrap_or("Built-in Display"),
+        ),
+        (
+            "Uptime",
+            &snapshot
+                .host
+                .uptime_secs
+                .map(units::duration)
+                .unwrap_or_else(|| "-".into()),
+        ),
     ];
 
     for (k, v) in entries {
@@ -73,7 +109,10 @@ fn render_system_card(app: &App, snapshot: &Snapshot, area: Rect, buf: &mut Buff
         }
         let line = Line::from(vec![
             Span::styled(format!("{:<11}", k), Style::default().fg(theme.secondary)),
-            Span::styled(units::truncate(v, inner.width.saturating_sub(12) as usize), Style::default().fg(theme.text).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                units::truncate(v, inner.width.saturating_sub(12) as usize),
+                Style::default().fg(theme.text).add_modifier(Modifier::BOLD),
+            ),
         ]);
         buf.set_line(inner.x, y, &line, inner.width);
         y += 1;
@@ -98,7 +137,10 @@ fn render_battery_card(app: &App, snapshot: &Snapshot, area: Rect, buf: &mut Buf
         // Line 1: State & Percent
         let status_line = Line::from(vec![
             Span::styled("Charge: ", Style::default().fg(theme.secondary)),
-            Span::styled(format!("{pct_str}  "), Style::default().fg(col).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                format!("{pct_str}  "),
+                Style::default().fg(col).add_modifier(Modifier::BOLD),
+            ),
             Span::styled(bat.state.label(), Style::default().fg(theme.cyan)),
         ]);
         buf.set_line(inner.x, y, &status_line, inner.width);
@@ -112,11 +154,15 @@ fn render_battery_card(app: &App, snapshot: &Snapshot, area: Rect, buf: &mut Buf
                 width: inner.width,
                 height: 1,
             };
-            SmoothBar::new(bat.percent as f64 / 100.0, col, theme.empty_track).render(bar_rect, buf);
+            SmoothBar::new(bat.percent as f64 / 100.0, col, theme.empty_track)
+                .render(bar_rect, buf);
             y += 2;
         }
 
-        let power_str = bat.power_w.map(|w| format!("{:.1} W", w)).unwrap_or_else(|| "n/a".into());
+        let power_str = bat
+            .power_w
+            .map(|w| format!("{:.1} W", w))
+            .unwrap_or_else(|| "n/a".into());
         let time_str = if let Some(t) = bat.time_to_empty_secs {
             format!("{} remaining", units::duration(t))
         } else if let Some(t) = bat.time_to_full_secs {
@@ -126,15 +172,28 @@ fn render_battery_card(app: &App, snapshot: &Snapshot, area: Rect, buf: &mut Buf
         };
 
         let entries = [
-            ("Power Source", match bat.source {
-                Some(PowerSource::Adapter) => "Power Adapter",
-                Some(PowerSource::Battery) => "Battery",
-                None => "n/a",
-            }),
+            (
+                "Power Source",
+                match bat.source {
+                    Some(PowerSource::Adapter) => "Power Adapter",
+                    Some(PowerSource::Battery) => "Battery",
+                    None => "n/a",
+                },
+            ),
             ("Draw", &power_str),
             ("Time", &time_str),
-            ("Cycles", &bat.cycle_count.map(|c| c.to_string()).unwrap_or_else(|| "n/a".into())),
-            ("Health", &bat.health_pct.map(|h| format!("{h:.0}%")).unwrap_or_else(|| "n/a".into())),
+            (
+                "Cycles",
+                &bat.cycle_count
+                    .map(|c| c.to_string())
+                    .unwrap_or_else(|| "n/a".into()),
+            ),
+            (
+                "Health",
+                &bat.health_pct
+                    .map(|h| format!("{h:.0}%"))
+                    .unwrap_or_else(|| "n/a".into()),
+            ),
         ];
 
         for (k, v) in entries {
@@ -143,13 +202,19 @@ fn render_battery_card(app: &App, snapshot: &Snapshot, area: Rect, buf: &mut Buf
             }
             let line = Line::from(vec![
                 Span::styled(format!("{:<13}", k), Style::default().fg(theme.secondary)),
-                Span::styled(v, Style::default().fg(theme.text).add_modifier(Modifier::BOLD)),
+                Span::styled(
+                    v,
+                    Style::default().fg(theme.text).add_modifier(Modifier::BOLD),
+                ),
             ]);
             buf.set_line(inner.x, y, &line, inner.width);
             y += 1;
         }
     } else {
-        let msg = Line::from(Span::styled("No battery detected (Desktop / AC powered)", Style::default().fg(theme.secondary)));
+        let msg = Line::from(Span::styled(
+            "No battery detected (Desktop / AC powered)",
+            Style::default().fg(theme.secondary),
+        ));
         buf.set_line(inner.x, y, &msg, inner.width);
     }
 }
@@ -194,7 +259,11 @@ fn render_thermals_card(app: &App, snapshot: &Snapshot, area: Rect, buf: &mut Bu
         buf.set_string(
             inner.x,
             y,
-            &format!("{:<width$}", units::truncate(&sensor.label, lbl_w), width = lbl_w),
+            format!(
+                "{:<width$}",
+                units::truncate(&sensor.label, lbl_w),
+                width = lbl_w
+            ),
             Style::default().fg(theme.text),
         );
 
@@ -214,7 +283,7 @@ fn render_thermals_card(app: &App, snapshot: &Snapshot, area: Rect, buf: &mut Bu
         buf.set_string(
             inner.x + inner.width.saturating_sub(6),
             y,
-            &format!("{:>5}", temp_str),
+            format!("{:>5}", temp_str),
             Style::default().fg(col).add_modifier(Modifier::BOLD),
         );
 
@@ -236,7 +305,10 @@ fn render_fans_card(app: &App, snapshot: &Snapshot, area: Rect, buf: &mut Buffer
     let fans = &snapshot.sensors.fans;
 
     if fans.is_empty() {
-        let msg = Line::from(Span::styled("No active fans detected (Passively cooled)", Style::default().fg(theme.secondary)));
+        let msg = Line::from(Span::styled(
+            "No active fans detected (Passively cooled)",
+            Style::default().fg(theme.secondary),
+        ));
         buf.set_line(inner.x, y, &msg, inner.width);
         return;
     }
@@ -256,7 +328,11 @@ fn render_fans_card(app: &App, snapshot: &Snapshot, area: Rect, buf: &mut Buffer
         buf.set_string(
             inner.x,
             y,
-            &format!("{:<width$}", units::truncate(&fan.label, lbl_w), width = lbl_w),
+            format!(
+                "{:<width$}",
+                units::truncate(&fan.label, lbl_w),
+                width = lbl_w
+            ),
             Style::default().fg(theme.text),
         );
 
@@ -273,7 +349,7 @@ fn render_fans_card(app: &App, snapshot: &Snapshot, area: Rect, buf: &mut Buffer
         buf.set_string(
             inner.x + inner.width.saturating_sub(10),
             y,
-            &format!("{:>9}", rpm_str),
+            format!("{:>9}", rpm_str),
             Style::default().fg(theme.cyan).add_modifier(Modifier::BOLD),
         );
 
@@ -294,30 +370,54 @@ fn render_wireless_card(app: &App, snapshot: &Snapshot, area: Rect, buf: &mut Bu
     let mut y = inner.y;
     if let Some(wifi) = &snapshot.hardware.wifi {
         let ssid = wifi.ssid.as_deref().unwrap_or("Connected");
-        let signal = wifi.signal_dbm.map(|s| format!("{s} dBm")).unwrap_or_else(|| "n/a".into());
-        let speed = wifi.link_mbps.map(|m| format!("{m:.0} Mbps")).unwrap_or_else(|| "n/a".into());
+        let signal = wifi
+            .signal_dbm
+            .map(|s| format!("{s} dBm"))
+            .unwrap_or_else(|| "n/a".into());
+        let speed = wifi
+            .link_mbps
+            .map(|m| format!("{m:.0} Mbps"))
+            .unwrap_or_else(|| "n/a".into());
 
         let line1 = Line::from(vec![
             Span::styled("Wi-Fi: ", Style::default().fg(theme.secondary)),
-            Span::styled(format!("{ssid}  "), Style::default().fg(theme.text).add_modifier(Modifier::BOLD)),
-            Span::styled(format!("({signal}, {speed})"), Style::default().fg(theme.green)),
+            Span::styled(
+                format!("{ssid}  "),
+                Style::default().fg(theme.text).add_modifier(Modifier::BOLD),
+            ),
+            Span::styled(
+                format!("({signal}, {speed})"),
+                Style::default().fg(theme.green),
+            ),
         ]);
         buf.set_line(inner.x, y, &line1, inner.width);
         y += 1;
     }
 
     // Bluetooth
-    let bt_devices: Vec<_> = snapshot.hardware.bluetooth.iter().filter(|d| d.connected).collect();
+    let bt_devices: Vec<_> = snapshot
+        .hardware
+        .bluetooth
+        .iter()
+        .filter(|d| d.connected)
+        .collect();
     let bt_count = bt_devices.len();
     let bt_summary = if bt_count == 0 {
         "No devices connected".to_string()
     } else {
-        bt_devices.iter().map(|d| d.name.as_str()).collect::<Vec<_>>().join(", ")
+        bt_devices
+            .iter()
+            .map(|d| d.name.as_str())
+            .collect::<Vec<_>>()
+            .join(", ")
     };
 
     let line2 = Line::from(vec![
         Span::styled("BT:    ", Style::default().fg(theme.secondary)),
-        Span::styled(units::truncate(&bt_summary, inner.width.saturating_sub(8) as usize), Style::default().fg(theme.text)),
+        Span::styled(
+            units::truncate(&bt_summary, inner.width.saturating_sub(8) as usize),
+            Style::default().fg(theme.text),
+        ),
     ]);
     buf.set_line(inner.x, y, &line2, inner.width);
 }
@@ -357,13 +457,31 @@ fn render_ports_card(app: &App, snapshot: &Snapshot, area: Rect, buf: &mut Buffe
         }
 
         let is_connected = port.connected == Some(true);
-        let dot_col = if is_connected { theme.green } else { theme.secondary };
-        let dev_text = port.device.as_deref().or(port.speed.as_deref()).unwrap_or("Empty");
+        let dot_col = if is_connected {
+            theme.green
+        } else {
+            theme.secondary
+        };
+        let dev_text = port
+            .device
+            .as_deref()
+            .or(port.speed.as_deref())
+            .unwrap_or("Empty");
 
         let line = Line::from(vec![
             Span::styled("● ", Style::default().fg(dot_col)),
-            Span::styled(format!("{:<14} ", units::truncate(&port.name, 14)), Style::default().fg(theme.text).add_modifier(Modifier::BOLD)),
-            Span::styled(units::truncate(dev_text, inner.width.saturating_sub(20) as usize), Style::default().fg(if is_connected { theme.cyan } else { theme.secondary })),
+            Span::styled(
+                format!("{:<14} ", units::truncate(&port.name, 14)),
+                Style::default().fg(theme.text).add_modifier(Modifier::BOLD),
+            ),
+            Span::styled(
+                units::truncate(dev_text, inner.width.saturating_sub(20) as usize),
+                Style::default().fg(if is_connected {
+                    theme.cyan
+                } else {
+                    theme.secondary
+                }),
+            ),
         ]);
         buf.set_line(inner.x, y, &line, inner.width);
         y += 1;
@@ -381,7 +499,12 @@ fn render_storage_card(app: &App, snapshot: &Snapshot, area: Rect, buf: &mut Buf
     }
 
     let mut y = inner.y;
-    for dev in snapshot.hardware.storage.iter().take(inner.height as usize / 2) {
+    for dev in snapshot
+        .hardware
+        .storage
+        .iter()
+        .take(inner.height as usize / 2)
+    {
         if y >= inner.y + inner.height {
             break;
         }
@@ -393,7 +516,10 @@ fn render_storage_card(app: &App, snapshot: &Snapshot, area: Rect, buf: &mut Buf
         };
 
         let line1 = Line::from(vec![
-            Span::styled(format!("{:<18} ", units::truncate(&dev.name, 18)), Style::default().fg(theme.text).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                format!("{:<18} ", units::truncate(&dev.name, 18)),
+                Style::default().fg(theme.text).add_modifier(Modifier::BOLD),
+            ),
             Span::styled("● Verified", Style::default().fg(health_col)),
         ]);
         buf.set_line(inner.x, y, &line1, inner.width);
@@ -402,9 +528,10 @@ fn render_storage_card(app: &App, snapshot: &Snapshot, area: Rect, buf: &mut Buf
         if y < inner.y + inner.height {
             let iface_str = dev.interface.as_deref().unwrap_or("Internal NVMe");
             let size_str = dev.size.map(units::bytes).unwrap_or_else(|| "-".into());
-            let line2 = Line::from(vec![
-                Span::styled(format!("  {} ({})", iface_str, size_str), Style::default().fg(theme.secondary)),
-            ]);
+            let line2 = Line::from(vec![Span::styled(
+                format!("  {} ({})", iface_str, size_str),
+                Style::default().fg(theme.secondary),
+            )]);
             buf.set_line(inner.x, y, &line2, inner.width);
             y += 1;
         }

@@ -35,7 +35,8 @@ impl Collector for DemoCollector {
 
         for i in 0..HISTORY_LEN {
             let offset = (i as f64 - HISTORY_LEN as f64) * 0.12 + t;
-            let c = (28.0 + 18.0 * offset.sin() + 8.0 * (offset * 2.3).cos()).clamp(4.0, 96.0) as f32;
+            let c =
+                (28.0 + 18.0 * offset.sin() + 8.0 * (offset * 2.3).cos()).clamp(4.0, 96.0) as f32;
             let m = (52.0 + 4.0 * (offset * 0.5).sin()).clamp(10.0, 95.0) as f32;
             let rx = 12_500_000.0 * (1.0 + (offset * 1.1).sin()).max(0.05);
             let tx = 2_400_000.0 * (1.0 + (offset * 1.7).cos()).max(0.02);
@@ -69,7 +70,8 @@ impl Collector for DemoCollector {
             });
         }
         for i in 0..6 {
-            let usage = ((curr_cpu * 0.7) + ((t + (i + 6) as f64).cos() * 10.0) as f32).clamp(1.0, 95.0);
+            let usage =
+                ((curr_cpu * 0.7) + ((t + (i + 6) as f64).cos() * 10.0) as f32).clamp(1.0, 95.0);
             cores.push(CoreUsage {
                 label: format!("E{i}"),
                 kind: CoreKind::Efficiency,

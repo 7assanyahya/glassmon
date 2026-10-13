@@ -1,6 +1,5 @@
 //! Application state, navigation, interaction modes, and event dispatch.
 
-
 use crate::model::Needs;
 use crate::ui::theme::{ColorCapability, Theme, ThemeMode};
 use crate::ui::widgets::modal::ModalType;
@@ -215,15 +214,16 @@ impl App {
             ThemeMode::Light => ThemeMode::Dark,
         };
         self.theme = Theme::new(new_mode, self.theme.cap);
-        self.add_toast(
-            format!("Theme switched to {:?}", new_mode),
-            ToastKind::Info,
-        );
+        self.add_toast(format!("Theme switched to {:?}", new_mode), ToastKind::Info);
     }
 
     pub fn toggle_temp_unit(&mut self) {
         self.fahrenheit = !self.fahrenheit;
-        let u = if self.fahrenheit { "Fahrenheit (°F)" } else { "Celsius (°C)" };
+        let u = if self.fahrenheit {
+            "Fahrenheit (°F)"
+        } else {
+            "Celsius (°C)"
+        };
         self.add_toast(format!("Temperature units: {u}"), ToastKind::Info);
     }
 

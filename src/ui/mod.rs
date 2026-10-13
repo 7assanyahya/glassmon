@@ -85,18 +85,13 @@ fn render_header(f: &mut Frame, app: &App, area: Rect) {
         Span::styled(" ", Style::default()),
         Span::styled(
             app.page.title(),
-            Style::default()
-                .fg(theme.text)
-                .add_modifier(Modifier::BOLD),
+            Style::default().fg(theme.text).add_modifier(Modifier::BOLD),
         ),
     ]);
 
     let subtitle_line = Line::from(vec![
         Span::styled(" ", Style::default()),
-        Span::styled(
-            app.page.subtitle(),
-            Style::default().fg(theme.secondary),
-        ),
+        Span::styled(app.page.subtitle(), Style::default().fg(theme.secondary)),
     ]);
 
     let paragraph = Paragraph::new(vec![title_line, subtitle_line]);
@@ -156,7 +151,9 @@ fn render_too_small(f: &mut Frame, app: &App, area: Rect) {
             Span::raw("  Current:  "),
             Span::styled(
                 format!("{} x {}", area.width, area.height),
-                Style::default().fg(theme.orange).add_modifier(Modifier::BOLD),
+                Style::default()
+                    .fg(theme.orange)
+                    .add_modifier(Modifier::BOLD),
             ),
         ]),
     ];

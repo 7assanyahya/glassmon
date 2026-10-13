@@ -7,15 +7,12 @@ pub struct Pill;
 
 impl Pill {
     /// Renders a small filled status chip: ` ● Connected ` or ` Verified `
-    pub fn new<'a>(text: &'a str, fg: Color, bg: Color) -> Vec<Span<'a>> {
+    pub fn chip<'a>(text: &'a str, fg: Color, bg: Color) -> Vec<Span<'a>> {
         vec![
             Span::styled(" ", Style::default().bg(bg)),
             Span::styled(
                 text,
-                Style::default()
-                    .fg(fg)
-                    .bg(bg)
-                    .add_modifier(Modifier::BOLD),
+                Style::default().fg(fg).bg(bg).add_modifier(Modifier::BOLD),
             ),
             Span::styled(" ", Style::default().bg(bg)),
         ]

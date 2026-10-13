@@ -1,8 +1,8 @@
 //! Configuration loading and persistence from `~/.config/glassmon/config.toml`.
 
+use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
-use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {

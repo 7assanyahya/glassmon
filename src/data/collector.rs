@@ -4,8 +4,8 @@ use std::collections::HashMap;
 use std::time::Instant;
 
 use sysinfo::{
-    CpuRefreshKind, DiskRefreshKind, Disks, MemoryRefreshKind, Networks,
-    ProcessRefreshKind, ProcessesToUpdate, RefreshKind, System, UpdateKind,
+    CpuRefreshKind, DiskRefreshKind, Disks, MemoryRefreshKind, Networks, ProcessRefreshKind,
+    ProcessesToUpdate, RefreshKind, System, UpdateKind,
 };
 
 use crate::data::Collector;
@@ -84,7 +84,10 @@ impl Collector for SystemCollector {
     fn sample(&mut self, needs: &Needs) -> Snapshot {
         self.seq += 1;
         let now = Instant::now();
-        let elapsed = now.duration_since(self.last_sample).as_secs_f64().max(0.001);
+        let elapsed = now
+            .duration_since(self.last_sample)
+            .as_secs_f64()
+            .max(0.001);
         self.last_sample = now;
 
         // 1. Refresh CPU and Memory
@@ -125,8 +128,14 @@ impl Collector for SystemCollector {
             let rx_bytes = data.total_received();
             let tx_bytes = data.total_transmitted();
 
-            let prev_rx = self.prev_net_rx.insert(name.clone(), rx_bytes).unwrap_or(rx_bytes);
-            let prev_tx = self.prev_net_tx.insert(name.clone(), tx_bytes).unwrap_or(tx_bytes);
+            let prev_rx = self
+                .prev_net_rx
+                .insert(name.clone(), rx_bytes)
+                .unwrap_or(rx_bytes);
+            let prev_tx = self
+                .prev_net_tx
+                .insert(name.clone(), tx_bytes)
+                .unwrap_or(tx_bytes);
 
             let rx_rate = rx_bytes.saturating_sub(prev_rx) as f64 / elapsed;
             let tx_rate = tx_bytes.saturating_sub(prev_tx) as f64 / elapsed;
@@ -137,18 +146,23 @@ impl Collector for SystemCollector {
                 total_tx_rate += tx_rate;
             }
 
-            let kind = if name.starts_with("en0") || name.starts_with("wlan") || name.starts_with("wl") {
-                IfaceKind::Wifi
-            } else if is_loopback {
-                IfaceKind::Loopback
-            } else if name.starts_with("eth") || name.starts_with("en") {
-                IfaceKind::Ethernet
-            } else {
-                IfaceKind::Other
-            };
+            let kind =
+                if name.starts_with("en0") || name.starts_with("wlan") || name.starts_with("wl") {
+                    IfaceKind::Wifi
+                } else if is_loopback {
+                    IfaceKind::Loopback
+                } else if name.starts_with("eth") || name.starts_with("en") {
+                    IfaceKind::Ethernet
+                } else {
+                    IfaceKind::Other
+                };
 
             let mac = Some(data.mac_address().to_string());
-            let addresses = data.ip_networks().iter().map(|ip| ip.addr.to_string()).collect();
+            let addresses = data
+                .ip_networks()
+                .iter()
+                .map(|ip| ip.addr.to_string())
+                .collect();
 
             iface_stats.push(InterfaceStats {
                 name: name.clone(),
@@ -171,9 +185,7 @@ impl Collector for SystemCollector {
         let mut processes = Vec::new();
         let total_proc_count;
         if needs.processes {
-            let mut refresh_kind = ProcessRefreshKind::default()
-                .with_cpu()
-                .with_memory();
+            let mut refresh_kind = ProcessRefreshKind::default().with_cpu().with_memory();
 
             if needs.process_details {
                 refresh_kind = refresh_kind
@@ -181,11 +193,8 @@ impl Collector for SystemCollector {
                     .with_user(UpdateKind::OnlyIfNotSet);
             }
 
-            self.sys.refresh_processes_specifics(
-                ProcessesToUpdate::All,
-                true,
-                refresh_kind,
-            );
+            self.sys
+                .refresh_processes_specifics(ProcessesToUpdate::All, true, refresh_kind);
 
             total_proc_count = self.sys.processes().len();
 
@@ -195,13 +204,24 @@ impl Collector for SystemCollector {
                 let r_bytes = disk_usage.total_read_bytes;
                 let w_bytes = disk_usage.total_written_bytes;
 
-                let prev_r = self.prev_proc_disk_read.insert(pid_u32, r_bytes).unwrap_or(r_bytes);
-                let prev_w = self.prev_proc_disk_write.insert(pid_u32, w_bytes).unwrap_or(w_bytes);
+                let prev_r = self
+                    .prev_proc_disk_read
+                    .insert(pid_u32, r_bytes)
+                    .unwrap_or(r_bytes);
+                let prev_w = self
+                    .prev_proc_disk_write
+                    .insert(pid_u32, w_bytes)
+                    .unwrap_or(w_bytes);
 
                 let r_rate = r_bytes.saturating_sub(prev_r) as f64 / elapsed;
                 let w_rate = w_bytes.saturating_sub(prev_w) as f64 / elapsed;
 
-                let cmd_str = p.cmd().iter().map(|c| c.to_string_lossy().to_string()).collect::<Vec<_>>().join(" ");
+                let cmd_str = p
+                    .cmd()
+                    .iter()
+                    .map(|c| c.to_string_lossy().to_string())
+                    .collect::<Vec<_>>()
+                    .join(" ");
                 let name = p.name().to_string_lossy().to_string();
 
                 processes.push(ProcessInfo {
@@ -211,14 +231,22 @@ impl Collector for SystemCollector {
                     cpu: p.cpu_usage(),
                     memory: p.memory(),
                     threads: p.tasks().map(|t| t.len() as u32),
-                    state: format!("{:?}", p.status()).chars().next().unwrap_or('?').to_string(),
+                    state: format!("{:?}", p.status())
+                        .chars()
+                        .next()
+                        .unwrap_or('?')
+                        .to_string(),
                     command: cmd_str,
                     disk_read_rate: r_rate,
                     disk_write_rate: w_rate,
                 });
             }
             // Sort by CPU usage descending by default
-            processes.sort_by(|a, b| b.cpu.partial_cmp(&a.cpu).unwrap_or(std::cmp::Ordering::Equal));
+            processes.sort_by(|a, b| {
+                b.cpu
+                    .partial_cmp(&a.cpu)
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            });
         } else {
             total_proc_count = 0;
         }

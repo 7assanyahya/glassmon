@@ -67,7 +67,10 @@ fn render_storage_breakdown(app: &App, snapshot: &Snapshot, area: Rect, buf: &mu
     // Line 1: Drive name & switcher hint
     let title_line = Line::from(vec![
         Span::styled(
-            format!("Drive: {} ", sel_vol.map(|v| v.name.as_str()).unwrap_or("Internal SSD")),
+            format!(
+                "Drive: {} ",
+                sel_vol.map(|v| v.name.as_str()).unwrap_or("Internal SSD")
+            ),
             Style::default().fg(theme.text).add_modifier(Modifier::BOLD),
         ),
         Span::styled(
@@ -86,8 +89,14 @@ fn render_storage_breakdown(app: &App, snapshot: &Snapshot, area: Rect, buf: &mu
 
         let used_line = Line::from(vec![
             Span::styled("Used: ", Style::default().fg(theme.secondary)),
-            Span::styled(format!("{used_str} "), Style::default().fg(theme.text).add_modifier(Modifier::BOLD)),
-            Span::styled(format!("of {total_str} ({pct_str})"), Style::default().fg(theme.secondary)),
+            Span::styled(
+                format!("{used_str} "),
+                Style::default().fg(theme.text).add_modifier(Modifier::BOLD),
+            ),
+            Span::styled(
+                format!("of {total_str} ({pct_str})"),
+                Style::default().fg(theme.secondary),
+            ),
         ]);
         buf.set_line(inner.x, y, &used_line, inner.width);
         y += 1;
@@ -115,7 +124,9 @@ fn render_storage_breakdown(app: &App, snapshot: &Snapshot, area: Rect, buf: &mu
         }
     };
 
-    if let Some(bd) = breakdown && !bd.segments.is_empty() {
+    if let Some(bd) = breakdown
+        && !bd.segments.is_empty()
+    {
         let segs: Vec<Segment> = bd
             .segments
             .iter()
@@ -128,7 +139,11 @@ fn render_storage_breakdown(app: &App, snapshot: &Snapshot, area: Rect, buf: &mu
         StackedBar::new(segs, theme.empty_track).render(bar_rect, buf);
 
         // 4-column legend
-        let legend_items: Vec<_> = bd.segments.iter().filter(|(c, _)| *c != StorageCategory::Free).collect();
+        let legend_items: Vec<_> = bd
+            .segments
+            .iter()
+            .filter(|(c, _)| *c != StorageCategory::Free)
+            .collect();
         let cols = 4;
         let col_w = inner.width / cols;
 
@@ -168,9 +183,9 @@ fn render_throughput_card(app: &App, snapshot: &Snapshot, area: Rect, buf: &mut 
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(1), // Rates text
+            Constraint::Length(1),                                     // Rates text
             Constraint::Length(inner.height.saturating_sub(5).min(3)), // Sparkline
-            Constraint::Min(2), // Metrics tiles
+            Constraint::Min(2),                                        // Metrics tiles
         ])
         .split(inner);
 
@@ -180,36 +195,74 @@ fn render_throughput_card(app: &App, snapshot: &Snapshot, area: Rect, buf: &mut 
 
     let text_line = Line::from(vec![
         Span::styled("Read: ", Style::default().fg(theme.secondary)),
-        Span::styled(format!("{r_str:<10}  "), Style::default().fg(theme.green).add_modifier(Modifier::BOLD)),
+        Span::styled(
+            format!("{r_str:<10}  "),
+            Style::default()
+                .fg(theme.green)
+                .add_modifier(Modifier::BOLD),
+        ),
         Span::styled("Write: ", Style::default().fg(theme.secondary)),
-        Span::styled(w_str, Style::default().fg(theme.orange).add_modifier(Modifier::BOLD)),
+        Span::styled(
+            w_str,
+            Style::default()
+                .fg(theme.orange)
+                .add_modifier(Modifier::BOLD),
+        ),
     ]);
     buf.set_line(chunks[0].x, chunks[0].y, &text_line, chunks[0].width);
 
     // Sparkline for Read
     if chunks[1].height > 0 {
-        let r_u64: Vec<u64> = io.read_history.iter().map(|&v| (v / 1024.0) as u64).collect();
+        let r_u64: Vec<u64> = io
+            .read_history
+            .iter()
+            .map(|&v| (v / 1024.0) as u64)
+            .collect();
         Sparkline::new(&r_u64, theme.green).render(chunks[1], buf);
     }
 
     // Tiles: IOPS, Latency, Queue depth, Busy%
     if chunks[2].height >= 2 {
-        let iops_str = io.iops.map(|v| format!("{:.0}", v)).unwrap_or_else(|| "n/a".into());
-        let lat_str = io.latency_ms.map(|v| format!("{:.2} ms", v)).unwrap_or_else(|| "n/a".into());
-        let q_str = io.queue_depth.map(|v| format!("{:.1}", v)).unwrap_or_else(|| "n/a".into());
-        let busy_str = io.busy_pct.map(|v| format!("{:.1}%", v)).unwrap_or_else(|| "n/a".into());
+        let iops_str = io
+            .iops
+            .map(|v| format!("{:.0}", v))
+            .unwrap_or_else(|| "n/a".into());
+        let lat_str = io
+            .latency_ms
+            .map(|v| format!("{:.2} ms", v))
+            .unwrap_or_else(|| "n/a".into());
+        let q_str = io
+            .queue_depth
+            .map(|v| format!("{:.1}", v))
+            .unwrap_or_else(|| "n/a".into());
+        let busy_str = io
+            .busy_pct
+            .map(|v| format!("{:.1}%", v))
+            .unwrap_or_else(|| "n/a".into());
 
         let tile_line_1 = Line::from(vec![
             Span::styled("IOPS: ", Style::default().fg(theme.secondary)),
-            Span::styled(format!("{iops_str:<8}  "), Style::default().fg(theme.text).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                format!("{iops_str:<8}  "),
+                Style::default().fg(theme.text).add_modifier(Modifier::BOLD),
+            ),
             Span::styled("Latency: ", Style::default().fg(theme.secondary)),
-            Span::styled(lat_str, Style::default().fg(theme.text).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                lat_str,
+                Style::default().fg(theme.text).add_modifier(Modifier::BOLD),
+            ),
         ]);
         let tile_line_2 = Line::from(vec![
             Span::styled("Queue: ", Style::default().fg(theme.secondary)),
-            Span::styled(format!("{q_str:<7}  "), Style::default().fg(theme.text).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                format!("{q_str:<7}  "),
+                Style::default().fg(theme.text).add_modifier(Modifier::BOLD),
+            ),
             Span::styled("Busy: ", Style::default().fg(theme.secondary)),
-            Span::styled(busy_str, Style::default().fg(theme.text).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                busy_str,
+                Style::default().fg(theme.text).add_modifier(Modifier::BOLD),
+            ),
         ]);
 
         buf.set_line(chunks[2].x, chunks[2].y, &tile_line_1, chunks[2].width);
@@ -244,11 +297,20 @@ fn render_volumes_table(app: &App, snapshot: &Snapshot, area: Rect, buf: &mut Bu
 
     let header_cells = ["MOUNT", "FS", "SIZE", "USED", "FREE", "USE%"]
         .into_iter()
-        .map(|h| Cell::from(Span::styled(h, Style::default().fg(theme.cyan).add_modifier(Modifier::BOLD))));
+        .map(|h| {
+            Cell::from(Span::styled(
+                h,
+                Style::default().fg(theme.cyan).add_modifier(Modifier::BOLD),
+            ))
+        });
     let header = Row::new(header_cells).height(1);
 
     let volumes = &snapshot.disks.volumes;
-    let selected_idx = if volumes.is_empty() { 0 } else { app.disk_selected % volumes.len() };
+    let selected_idx = if volumes.is_empty() {
+        0
+    } else {
+        app.disk_selected % volumes.len()
+    };
 
     let rows: Vec<Row> = volumes
         .iter()
@@ -262,10 +324,17 @@ fn render_volumes_table(app: &App, snapshot: &Snapshot, area: Rect, buf: &mut Bu
             };
 
             let pct = v.used_pct();
-            let col = if is_selected { Color::White } else { theme.usage_color(pct) };
+            let col = if is_selected {
+                Color::White
+            } else {
+                theme.usage_color(pct)
+            };
 
             Row::new(vec![
-                Cell::from(Span::styled(units::truncate(&v.mount, 12), Style::default().add_modifier(Modifier::BOLD))),
+                Cell::from(Span::styled(
+                    units::truncate(&v.mount, 12),
+                    Style::default().add_modifier(Modifier::BOLD),
+                )),
                 Cell::from(v.fs.clone()),
                 Cell::from(units::bytes(v.total)),
                 Cell::from(units::bytes(v.used())),
@@ -310,21 +379,52 @@ fn render_smart_card(app: &App, snapshot: &Snapshot, area: Rect, buf: &mut Buffe
             HealthStatus::Unknown => (" Unknown ", theme.text, theme.empty_track),
         };
 
-        let pill_spans = Pill::new(pill_text, pill_fg, pill_bg);
-        let mut status_line = vec![
-            Span::styled("Status: ", Style::default().fg(theme.secondary)),
-        ];
+        let pill_spans = Pill::chip(pill_text, pill_fg, pill_bg);
+        let mut status_line = vec![Span::styled(
+            "Status: ",
+            Style::default().fg(theme.secondary),
+        )];
         status_line.extend(pill_spans);
         buf.set_line(inner.x, y, &Line::from(status_line), inner.width);
         y += 1;
 
         let entries = [
-            ("Temp", s.temperature_c.map(|t| units::temp(t, app.fahrenheit)).unwrap_or_else(|| "n/a".into())),
-            ("Power Hours", s.power_on_hours.map(|h| format!("{h}h")).unwrap_or_else(|| "n/a".into())),
-            ("Data Written", s.data_written.map(units::bytes).unwrap_or_else(|| "n/a".into())),
-            ("Wear Level", s.wear_pct.map(|p| format!("{p:.0}%")).unwrap_or_else(|| "n/a".into())),
-            ("Spare Available", s.available_spare_pct.map(|p| format!("{p:.0}%")).unwrap_or_else(|| "n/a".into())),
-            ("Media Errors", s.media_errors.map(|e| e.to_string()).unwrap_or_else(|| "n/a".into())),
+            (
+                "Temp",
+                s.temperature_c
+                    .map(|t| units::temp(t, app.fahrenheit))
+                    .unwrap_or_else(|| "n/a".into()),
+            ),
+            (
+                "Power Hours",
+                s.power_on_hours
+                    .map(|h| format!("{h}h"))
+                    .unwrap_or_else(|| "n/a".into()),
+            ),
+            (
+                "Data Written",
+                s.data_written
+                    .map(units::bytes)
+                    .unwrap_or_else(|| "n/a".into()),
+            ),
+            (
+                "Wear Level",
+                s.wear_pct
+                    .map(|p| format!("{p:.0}%"))
+                    .unwrap_or_else(|| "n/a".into()),
+            ),
+            (
+                "Spare Available",
+                s.available_spare_pct
+                    .map(|p| format!("{p:.0}%"))
+                    .unwrap_or_else(|| "n/a".into()),
+            ),
+            (
+                "Media Errors",
+                s.media_errors
+                    .map(|e| e.to_string())
+                    .unwrap_or_else(|| "n/a".into()),
+            ),
         ];
 
         for (k, v) in entries {
@@ -333,13 +433,19 @@ fn render_smart_card(app: &App, snapshot: &Snapshot, area: Rect, buf: &mut Buffe
             }
             let line = Line::from(vec![
                 Span::styled(format!("{:<15}", k), Style::default().fg(theme.secondary)),
-                Span::styled(v, Style::default().fg(theme.text).add_modifier(Modifier::BOLD)),
+                Span::styled(
+                    v,
+                    Style::default().fg(theme.text).add_modifier(Modifier::BOLD),
+                ),
             ]);
             buf.set_line(inner.x, y, &line, inner.width);
             y += 1;
         }
     } else {
-        let msg = Line::from(Span::styled("No SMART device found", Style::default().fg(theme.secondary)));
+        let msg = Line::from(Span::styled(
+            "No SMART device found",
+            Style::default().fg(theme.secondary),
+        ));
         buf.set_line(inner.x, y, &msg, inner.width);
     }
 }
@@ -358,12 +464,17 @@ fn render_disk_activity_table(app: &App, snapshot: &Snapshot, area: Rect, buf: &
     procs.sort_by(|a, b| {
         let a_tot = a.disk_read_rate + a.disk_write_rate;
         let b_tot = b.disk_read_rate + b.disk_write_rate;
-        b_tot.partial_cmp(&a_tot).unwrap_or(std::cmp::Ordering::Equal)
+        b_tot
+            .partial_cmp(&a_tot)
+            .unwrap_or(std::cmp::Ordering::Equal)
     });
 
-    let header_cells = ["PROCESS", "READ/s", "WRITE/s"]
-        .into_iter()
-        .map(|h| Cell::from(Span::styled(h, Style::default().fg(theme.cyan).add_modifier(Modifier::BOLD))));
+    let header_cells = ["PROCESS", "READ/s", "WRITE/s"].into_iter().map(|h| {
+        Cell::from(Span::styled(
+            h,
+            Style::default().fg(theme.cyan).add_modifier(Modifier::BOLD),
+        ))
+    });
     let header = Row::new(header_cells).height(1);
 
     let rows: Vec<Row> = procs
@@ -372,8 +483,14 @@ fn render_disk_activity_table(app: &App, snapshot: &Snapshot, area: Rect, buf: &
         .map(|p| {
             Row::new(vec![
                 Cell::from(units::truncate(&p.name, 10)),
-                Cell::from(Span::styled(units::rate(p.disk_read_rate), Style::default().fg(theme.green))),
-                Cell::from(Span::styled(units::rate(p.disk_write_rate), Style::default().fg(theme.orange))),
+                Cell::from(Span::styled(
+                    units::rate(p.disk_read_rate),
+                    Style::default().fg(theme.green),
+                )),
+                Cell::from(Span::styled(
+                    units::rate(p.disk_write_rate),
+                    Style::default().fg(theme.orange),
+                )),
             ])
             .style(Style::default().fg(theme.text))
         })

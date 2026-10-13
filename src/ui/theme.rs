@@ -105,10 +105,10 @@ pub fn rgb_to_ansi256(r: u8, g: u8, b: u8) -> u8 {
         } else {
             232 + ((r - 8) as f32 / 10.0).round() as u8
         };
-        return gray_idx.min(255);
+        return gray_idx;
     }
 
-    cube_index.min(255)
+    cube_index
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
