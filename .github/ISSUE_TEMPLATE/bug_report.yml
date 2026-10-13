@@ -1,0 +1,71 @@
+name: Bug Report
+description: Report a defect, incorrect metric, rendering glitch, or crash
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report an issue! Please verify you are running the latest version of `glassmon`.
+  - type: input
+    id: version
+    attributes:
+      label: glassmon Version
+      description: Run `glassmon --version` and paste the output.
+      placeholder: glassmon 0.1.0
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      options:
+        - macOS (Apple Silicon)
+        - macOS (Intel)
+        - Linux (x86_64)
+        - Linux (aarch64)
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: terminal
+    attributes:
+      label: Terminal Emulator
+      description: Which terminal and multiplexer are you using? (e.g. Ghostty, Alacritty, iTerm2, tmux, Kitty)
+      placeholder: Ghostty with TERM=xterm-256color, COLORTERM=truecolor
+    validations:
+      required: true
+  - type: dropdown
+    id: demo_reproduces
+    attributes:
+      label: Does this issue reproduce with `--demo`?
+      description: Run `glassmon --demo` to see if the issue is purely visual/TUI or related to real sensor sampling.
+      options:
+        - "Yes, it reproduces in --demo"
+        - "No, only with real system sensors"
+        - "Untested"
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Description of the Bug
+      description: A clear and concise description of what happened versus what you expected.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: How can maintainers reproduce the issue?
+      placeholder: |
+        1. Run `glassmon`
+        2. Press `4` to switch to Disks page
+        3. Notice...
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Verbose / Diagnostic Output
+      description: If applicable, run `glassmon --verbose` or provide error messages.
+      render: shell

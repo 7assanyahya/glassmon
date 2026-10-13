@@ -1,0 +1,40 @@
+name: Hardware Support Request
+description: Request port chassis layouts or sensor support for a new machine model
+labels: ["hardware", "device"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ### ⚠️ Privacy Warning
+        **Before pasting any hardware output below, please inspect and REDACT any personal identifiers, serial numbers, MAC addresses, UUIDs, or Wi-Fi network SSIDs.**
+  - type: input
+    id: machine_model
+    attributes:
+      label: Machine Model Name & Identifier
+      placeholder: e.g. MacBook Air 15" (Mac15,13) or Framework Laptop 13 (AMD 7040)
+    validations:
+      required: true
+  - type: textarea
+    id: port_layout
+    attributes:
+      label: Physical Port Layout
+      description: Describe the physical port locations on the machine chassis (Left side, Right side, Rear).
+      placeholder: |
+        Left:
+          1. MagSafe 3
+          2. Thunderbolt 4
+          3. Thunderbolt 4
+        Right:
+          4. 3.5mm Headphone Jack
+    validations:
+      required: true
+  - type: textarea
+    id: hardware_profiler_output
+    attributes:
+      label: Hardware Profile Output (Redacted)
+      description: |
+        - **macOS:** Output of `system_profiler -json SPHardwareDataType SPDisplaysDataType SPNVMeDataType`
+        - **Linux:** Output of `ls /sys/class/hwmon/` or `lspci -nn`
+      render: json
+    validations:
+      required: true

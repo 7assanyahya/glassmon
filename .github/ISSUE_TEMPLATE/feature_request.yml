@@ -1,0 +1,27 @@
+name: Feature Request
+description: Propose a new visual metric, page, widget, or customization
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        We appreciate suggestions to make `glassmon` faster, more informative, and better-looking!
+  - type: textarea
+    id: problem
+    attributes:
+      label: Is your feature request related to a problem?
+      description: A clear and concise description of the limitation or workflow gap.
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Describe the Solution You'd Like
+      description: Detailed explanation of how this should look and behave in the TUI.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Any alternative designs, tools (htop, btop, btm), or options considered.
