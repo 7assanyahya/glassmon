@@ -1,8 +1,13 @@
 //! glassmon: a fast, good-looking terminal system monitor for macOS and Linux.
 //!
-//! The crate is split into a library (so integration tests and snapshot tests
-//! can drive the UI) and a thin binary in `main.rs`.
+//! Visual design inspired by Liquid Glass, approximated for modern terminals.
 
 #![forbid(unsafe_code)]
 
+pub mod app;
+pub mod config;
+pub mod data;
+pub mod model;
 pub mod tui;
+pub mod ui;
+pub mod units;

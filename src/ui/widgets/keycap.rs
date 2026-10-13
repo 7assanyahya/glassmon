@@ -1,6 +1,6 @@
 //! Keycap chip widgets for footers and shortcuts.
 
-use ratatui::style::{Color, Modifier, Style};
+use ratatui::style::{Modifier, Style};
 use ratatui::text::Span;
 use crate::ui::theme::Theme;
 
