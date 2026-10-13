@@ -1,0 +1,42 @@
+{
+  "SPHardwareDataType": [
+    {
+      "machine_name": "MacBook Pro",
+      "machine_model": "Mac15,6",
+      "cpu_type": "Apple M3 Pro",
+      "number_processors": 12,
+      "physical_memory": "36 GB"
+    }
+  ],
+  "SPDisplaysDataType": [
+    {
+      "_name": "Apple M3 Pro GPU",
+      "spdisplays_ndrvs": [
+        {
+          "_name": "Built-in Liquid Retina XDR Display",
+          "_spdisplays_pixels": "3024 x 1964",
+          "_spdisplays_resolution": "1512 x 982"
+        }
+      ]
+    }
+  ],
+  "SPNVMeDataType": [
+    {
+      "_items": [
+        {
+          "_name": "APPLE SSD AP0512R",
+          "size_in_bytes": 500277792768,
+          "smart_status": "Verified"
+        }
+      ]
+    }
+  ],
+  "SPPowerDataType": [
+    {
+      "sppower_battery_health_info": {
+        "sppower_battery_cycle_count": 42,
+        "sppower_battery_health": "Normal"
+      }
+    }
+  ]
+}
