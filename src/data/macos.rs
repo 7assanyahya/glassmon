@@ -14,6 +14,8 @@ pub struct MacOsCollector {
     cached_ports: PortStats,
     cached_smart: Vec<SmartInfo>,
     cached_breakdown: Vec<StorageBreakdown>,
+    cached_adapter_watts: Option<u32>,
+    cached_battery_condition: Option<String>,
     p_cores: Option<usize>,
     e_cores: Option<usize>,
 }
@@ -28,6 +30,8 @@ impl MacOsCollector {
             cached_ports: PortStats::default(),
             cached_smart: Vec::new(),
             cached_breakdown: Vec::new(),
+            cached_adapter_watts: None,
+            cached_battery_condition: None,
             p_cores,
             e_cores,
         };
@@ -40,9 +44,12 @@ impl MacOsCollector {
         self.last_profiler_run = Some(Instant::now());
         if let Ok(json) = run_system_profiler() {
             let (hw, ports, smart) = parse_profiler_json(&json);
+            let (watts, cond) = parse_profiler_power(&json);
             self.cached_hardware = hw;
             self.cached_ports = ports;
             self.cached_smart = smart;
+            self.cached_adapter_watts = watts;
+            self.cached_battery_condition = cond;
         }
         self.cached_breakdown = sample_macos_storage_breakdown();
     }
@@ -91,8 +98,17 @@ impl Collector for MacOsCollector {
             snap.memory.pressure = Some((100.0 - level as f32).clamp(0.0, 100.0));
         }
 
-        // 3. Battery from starship_battery crate or system_profiler cache
-        snap.battery = query_battery();
+        // 3. Battery from starship_battery enriched with system_profiler
+        let mut bat = query_battery();
+        if let Some(b) = &mut bat {
+            if b.adapter_watts.is_none() {
+                b.adapter_watts = self.cached_adapter_watts;
+            }
+            if let Some(cond) = &self.cached_battery_condition {
+                b.condition = Some(cond.clone());
+            }
+        }
+        snap.battery = bat;
 
         // 4. Attach cached hardware, ports, SMART and storage breakdown
         snap.hardware = self.cached_hardware.clone();
@@ -164,12 +180,55 @@ pub fn parse_profiler_json(json: &serde_json::Value) -> (HardwareInfo, PortStats
             .and_then(|v| v.as_str())
             .map(Into::into);
         hw.chip = obj.get("cpu_type").and_then(|v| v.as_str()).map(Into::into);
+
+        // Core counts: physical and logical (hyper-threading)
+        let physical = obj
+            .get("total_number_cores")
+            .and_then(|v| v.as_u64())
+            .map(|v| v as usize)
+            .or_else(|| query_sysctl_u32("hw.physicalcpu").map(|v| v as usize));
+        let logical = obj
+            .get("number_processors")
+            .and_then(|v| v.as_u64())
+            .map(|v| v as usize)
+            .or_else(|| query_sysctl_u32("hw.logicalcpu").map(|v| v as usize));
+
+        if let Some(log) = logical {
+            hw.cores = Some(CoreCount {
+                total: log,
+                performance: physical,
+                efficiency: None,
+            });
+        }
     }
 
-    // SPDisplaysDataType
+    // SPDisplaysDataType (GPU models and displays)
     if let Some(arr) = json.get("SPDisplaysDataType").and_then(|v| v.as_array()) {
+        let mut gpus = Vec::new();
         for card in arr {
-            if let Some(disp_arr) = card.get("spdisplays_ndrvs").and_then(|v| v.as_array())
+            let gpu_name = card
+                .get("sppci_model")
+                .and_then(|v| v.as_str())
+                .or_else(|| card.get("_name").and_then(|v| v.as_str()));
+
+            if let Some(g_name) = gpu_name {
+                let vram = card
+                    .get("_spdisplays_vram")
+                    .or_else(|| card.get("spdisplays_vram"))
+                    .and_then(|v| v.as_str());
+
+                let display_gpu = if let Some(vr) = vram {
+                    format!("{g_name} ({vr})")
+                } else {
+                    g_name.to_string()
+                };
+                if !gpus.contains(&display_gpu) {
+                    gpus.push(display_gpu);
+                }
+            }
+
+            if hw.display.is_none()
+                && let Some(disp_arr) = card.get("spdisplays_ndrvs").and_then(|v| v.as_array())
                 && let Some(disp) = disp_arr.first()
             {
                 let name = disp
@@ -181,8 +240,10 @@ pub fn parse_profiler_json(json: &serde_json::Value) -> (HardwareInfo, PortStats
                     .and_then(|v| v.as_str())
                     .unwrap_or("");
                 hw.display = Some(format!("{name} ({res})"));
-                break;
             }
+        }
+        if !gpus.is_empty() {
+            hw.gpu = Some(gpus.join(" + "));
         }
     }
 
@@ -235,11 +296,39 @@ pub fn parse_profiler_json(json: &serde_json::Value) -> (HardwareInfo, PortStats
     (hw, ports, smart_list)
 }
 
+fn parse_profiler_power(json: &serde_json::Value) -> (Option<u32>, Option<String>) {
+    let mut watts = None;
+    let mut condition = None;
+
+    if let Some(arr) = json.get("SPPowerDataType").and_then(|v| v.as_array()) {
+        for item in arr {
+            if let Some(ac_info) = item.get("sppower_ac_charger_information")
+                && let Some(w_val) = ac_info.get("sppower_ac_charger_watts")
+            {
+                if let Some(s) = w_val.as_str() {
+                    watts = s.trim().parse::<u32>().ok();
+                } else if let Some(n) = w_val.as_u64() {
+                    watts = Some(n as u32);
+                }
+            }
+            if let Some(health_info) = item.get("sppower_battery_health_info")
+                && let Some(cond) = health_info
+                    .get("sppower_battery_health")
+                    .and_then(|v| v.as_str())
+            {
+                condition = Some(cond.to_string());
+            }
+        }
+    }
+    (watts, condition)
+}
+
 fn map_mac_ports(model_id: &str) -> PortStats {
     let id_lower = model_id.to_lowercase();
 
-    // MacBook Pro 14" / 16" (Mac15,* or MacBookPro18,*)
+    // MacBook Pro 14" / 16" Apple Silicon (Mac15,*, Mac16,*, MacBookPro18,*, MacBookPro17,*)
     if id_lower.contains("mac15,")
+        || id_lower.contains("mac16,")
         || id_lower.contains("macbookpro18")
         || id_lower.contains("macbookpro17")
     {
@@ -322,6 +411,127 @@ fn map_mac_ports(model_id: &str) -> PortStats {
                     connected: None,
                     device: None,
                     speed: Some("Up to 40 Gb/s".into()),
+                    power: None,
+                    usage: None,
+                },
+            ],
+        }
+    } else if id_lower.contains("macbookpro15,1")
+        || id_lower.contains("macbookpro15,2")
+        || id_lower.contains("macbookpro15,3")
+        || id_lower.contains("macbookpro16,1")
+        || id_lower.contains("macbookpro16,2")
+        || id_lower.contains("macbookpro13,2")
+        || id_lower.contains("macbookpro13,3")
+        || id_lower.contains("macbookpro14,2")
+        || id_lower.contains("macbookpro14,3")
+    {
+        // Intel MacBook Pro 15" / 16" and 13" 4-port (4x Thunderbolt 3, 1x 3.5mm Headphone)
+        PortStats {
+            layout_name: format!("{model_id} (MacBook Pro Intel)"),
+            known_layout: true,
+            form: DeviceForm::Laptop,
+            ports: vec![
+                PortStatus {
+                    index: 1,
+                    name: "Thunderbolt 3 (Left Front)".into(),
+                    kind: PortKind::Thunderbolt,
+                    side: Side::Left,
+                    connected: Some(true),
+                    device: Some("Power Adapter".into()),
+                    speed: Some("Up to 40 Gb/s".into()),
+                    power: Some("Charging / 87W".into()),
+                    usage: Some(0.3),
+                },
+                PortStatus {
+                    index: 2,
+                    name: "Thunderbolt 3 (Left Rear)".into(),
+                    kind: PortKind::Thunderbolt,
+                    side: Side::Left,
+                    connected: None,
+                    device: None,
+                    speed: Some("Up to 40 Gb/s".into()),
+                    power: Some("Charging".into()),
+                    usage: None,
+                },
+                PortStatus {
+                    index: 3,
+                    name: "Thunderbolt 3 (Right Rear)".into(),
+                    kind: PortKind::Thunderbolt,
+                    side: Side::Right,
+                    connected: None,
+                    device: None,
+                    speed: Some("Up to 40 Gb/s".into()),
+                    power: Some("Charging".into()),
+                    usage: None,
+                },
+                PortStatus {
+                    index: 4,
+                    name: "Thunderbolt 3 (Right Front)".into(),
+                    kind: PortKind::Thunderbolt,
+                    side: Side::Right,
+                    connected: None,
+                    device: None,
+                    speed: Some("Up to 40 Gb/s".into()),
+                    power: Some("Charging".into()),
+                    usage: None,
+                },
+                PortStatus {
+                    index: 5,
+                    name: "Headphone Jack".into(),
+                    kind: PortKind::Headphone,
+                    side: Side::Right,
+                    connected: Some(false),
+                    device: None,
+                    speed: Some("3.5mm Audio".into()),
+                    power: None,
+                    usage: None,
+                },
+            ],
+        }
+    } else if id_lower.contains("macbookpro13,1")
+        || id_lower.contains("macbookpro14,1")
+        || id_lower.contains("macbookpro15,4")
+        || id_lower.contains("macbookpro16,3")
+        || id_lower.contains("macbookair8")
+        || id_lower.contains("macbookair9")
+    {
+        // Intel MacBook Pro 13" 2-port & MacBook Air
+        PortStats {
+            layout_name: format!("{model_id} (MacBook Intel 2-Port)"),
+            known_layout: true,
+            form: DeviceForm::Laptop,
+            ports: vec![
+                PortStatus {
+                    index: 1,
+                    name: "Thunderbolt 3 (Left Front)".into(),
+                    kind: PortKind::Thunderbolt,
+                    side: Side::Left,
+                    connected: Some(true),
+                    device: Some("Power Adapter".into()),
+                    speed: Some("Up to 40 Gb/s".into()),
+                    power: Some("Charging".into()),
+                    usage: None,
+                },
+                PortStatus {
+                    index: 2,
+                    name: "Thunderbolt 3 (Left Rear)".into(),
+                    kind: PortKind::Thunderbolt,
+                    side: Side::Left,
+                    connected: None,
+                    device: None,
+                    speed: Some("Up to 40 Gb/s".into()),
+                    power: Some("Charging".into()),
+                    usage: None,
+                },
+                PortStatus {
+                    index: 3,
+                    name: "Headphone Jack".into(),
+                    kind: PortKind::Headphone,
+                    side: Side::Right,
+                    connected: Some(false),
+                    device: None,
+                    speed: Some("3.5mm Audio".into()),
                     power: None,
                     usage: None,
                 },

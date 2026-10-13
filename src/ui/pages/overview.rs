@@ -67,14 +67,22 @@ fn render_cpu_card(app: &App, snapshot: &Snapshot, area: Rect, buf: &mut Buffer)
     // Header line
     let cpu_pct = snapshot.cpu.usage as f64;
     let cpu_color = theme.usage_color(cpu_pct);
-    let brand = snapshot.cpu.brand.as_deref().unwrap_or("Processor");
+    let brand_raw = snapshot.cpu.brand.as_deref().unwrap_or("Processor");
+    let cleaned_brand = clean_cpu_brand(brand_raw);
+    let pct_str = format!("{cpu_pct:.1}%");
+
+    // Ensure percentage is never clipped by allocating remaining width to brand
+    let avail_w = chunks[0].width as usize;
+    let brand_max_w = avail_w.saturating_sub(pct_str.len() + 2);
+    let brand_truncated = units::truncate(&cleaned_brand, brand_max_w);
+
     let header_line = Line::from(vec![
         Span::styled(
-            format!("{brand} "),
+            format!("{brand_truncated} "),
             Style::default().fg(theme.text).add_modifier(Modifier::BOLD),
         ),
         Span::styled(
-            format!("{cpu_pct:.1}%"),
+            pct_str,
             Style::default().fg(cpu_color).add_modifier(Modifier::BOLD),
         ),
     ]);
@@ -86,27 +94,32 @@ fn render_cpu_card(app: &App, snapshot: &Snapshot, area: Rect, buf: &mut Buffer)
         Sparkline::new(&u64_data, cpu_color).render(chunks[1], buf);
     }
 
-    // Cores grid: 2 columns
+    // Cores grid: 2 or 4 columns based on available width and core count
     let cores = &snapshot.cpu.cores;
     if !cores.is_empty() && chunks[2].height > 0 {
-        let half_w = chunks[2].width / 2;
+        let num_cols = if chunks[2].width >= 54 && cores.len() >= 12 {
+            4
+        } else {
+            2
+        };
+        let col_w = chunks[2].width / num_cols as u16;
         let visible_rows = chunks[2].height as usize;
 
-        for (idx, core) in cores.iter().take(visible_rows * 2).enumerate() {
-            let col = idx % 2;
-            let row = idx / 2;
+        for (idx, core) in cores.iter().take(visible_rows * num_cols).enumerate() {
+            let col = idx % num_cols;
+            let row = idx / num_cols;
             let row_y = chunks[2].y + row as u16;
-            let col_x = chunks[2].x + (col as u16 * half_w);
+            let col_x = chunks[2].x + (col as u16 * col_w);
 
             let core_area = Rect {
                 x: col_x,
                 y: row_y,
-                width: half_w.saturating_sub(1),
+                width: col_w.saturating_sub(1),
                 height: 1,
             };
 
             let label = format!("{:>3} ", core.label);
-            let bar_w = core_area.width.saturating_sub(10);
+            let bar_w = core_area.width.saturating_sub(9);
 
             // Print core label
             buf.set_string(
@@ -141,6 +154,16 @@ fn render_cpu_card(app: &App, snapshot: &Snapshot, area: Rect, buf: &mut Buffer)
     }
 }
 
+fn clean_cpu_brand(brand: &str) -> String {
+    brand
+        .replace("(R)", "")
+        .replace("(TM)", "")
+        .replace("CPU @ ", "@ ")
+        .replace("  ", " ")
+        .trim()
+        .to_string()
+}
+
 fn render_mem_card(app: &App, snapshot: &Snapshot, area: Rect, buf: &mut Buffer) {
     let theme = &app.theme;
     let card = Card::new("Memory & Swap", theme);
@@ -159,45 +182,68 @@ fn render_mem_card(app: &App, snapshot: &Snapshot, area: Rect, buf: &mut Buffer)
 
     let mut lines = Vec::new();
 
-    // RAM line
+    // RAM line - responsive label and precision
+    let ram_label = if inner.width < 28 { "RAM " } else { "RAM   " };
+    let ram_details = if inner.width < 26 {
+        format!("{} ({:.0}%)", units::bytes_bin(mem.used), ram_pct)
+    } else if inner.width < 32 {
+        format!(
+            "{}/{} ({:.0}%)",
+            units::bytes_bin(mem.used),
+            units::bytes_bin(mem.total),
+            ram_pct
+        )
+    } else {
+        format!(
+            "{}/{} ({:.1}%)",
+            units::bytes_bin(mem.used),
+            units::bytes_bin(mem.total),
+            ram_pct
+        )
+    };
+
     lines.push(Line::from(vec![
         Span::styled(
-            "RAM   ",
+            ram_label,
             Style::default().fg(theme.text).add_modifier(Modifier::BOLD),
         ),
-        Span::styled(
-            format!(
-                "{}/{} ({:.1}%)",
-                units::bytes_bin(mem.used),
-                units::bytes_bin(mem.total),
-                ram_pct
-            ),
-            Style::default().fg(theme.secondary),
-        ),
+        Span::styled(ram_details, Style::default().fg(theme.secondary)),
     ]));
 
-    // Swap line
+    // Swap line - responsive label and precision
+    let swap_label = if inner.width < 28 { "Swap " } else { "Swap  " };
+    let swap_details = if mem.swap_total == 0 {
+        "0 B (0%)".into()
+    } else if inner.width < 32 {
+        format!(
+            "{}/{} ({:.0}%)",
+            units::bytes_bin(mem.swap_used),
+            units::bytes_bin(mem.swap_total),
+            swap_pct
+        )
+    } else {
+        format!(
+            "{}/{} ({:.1}%)",
+            units::bytes_bin(mem.swap_used),
+            units::bytes_bin(mem.swap_total),
+            swap_pct
+        )
+    };
+
     lines.push(Line::from(vec![
         Span::styled(
-            "Swap  ",
+            swap_label,
             Style::default().fg(theme.text).add_modifier(Modifier::BOLD),
         ),
-        Span::styled(
-            format!(
-                "{}/{} ({:.1}%)",
-                units::bytes_bin(mem.swap_used),
-                units::bytes_bin(mem.swap_total),
-                swap_pct
-            ),
-            Style::default().fg(swap_col),
-        ),
+        Span::styled(swap_details, Style::default().fg(swap_col)),
     ]));
 
     if let Some(press) = mem.pressure {
         let press_col = theme.usage_color(press as f64);
+        let press_label = if inner.width < 28 { "Pres " } else { "Press " };
         lines.push(Line::from(vec![
             Span::styled(
-                "Press ",
+                press_label,
                 Style::default().fg(theme.text).add_modifier(Modifier::BOLD),
             ),
             Span::styled(format!("{press:.0}%"), Style::default().fg(press_col)),

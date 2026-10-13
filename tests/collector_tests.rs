@@ -27,6 +27,51 @@ fn test_parse_system_profiler_fixture() {
     assert_eq!(ports.ports.len(), 7);
 }
 
+#[cfg(target_os = "macos")]
+#[test]
+fn test_parse_intel_mac_system_profiler() {
+    let raw = r#"{
+      "SPHardwareDataType": [{
+        "machine_name": "MacBook Pro",
+        "machine_model": "MacBookPro15,1",
+        "cpu_type": "8-Core Intel Core i9",
+        "total_number_cores": 8,
+        "number_processors": 16,
+        "physical_memory": "16 GB"
+      }],
+      "SPDisplaysDataType": [
+        {
+          "_name": "kHW_IntelUHDGraphics630Item",
+          "sppci_model": "Intel UHD Graphics 630",
+          "_spdisplays_vram": "1536 MB"
+        },
+        {
+          "_name": "kHW_AMDRadeonPro560XItem",
+          "sppci_model": "Radeon Pro 560X",
+          "spdisplays_vram": "4 GB"
+        }
+      ]
+    }"#;
+    let json: serde_json::Value = serde_json::from_str(raw).unwrap();
+    let (hw, ports, _) = glassmon::data::macos::parse_profiler_json(&json);
+
+    assert_eq!(hw.model_name.as_deref(), Some("MacBook Pro"));
+    assert_eq!(hw.model_id.as_deref(), Some("MacBookPro15,1"));
+    assert_eq!(hw.chip.as_deref(), Some("8-Core Intel Core i9"));
+
+    let cores = hw.cores.unwrap();
+    assert_eq!(cores.total, 16);
+    assert_eq!(cores.performance, Some(8));
+
+    assert!(hw.gpu.is_some());
+    let gpu_str = hw.gpu.unwrap();
+    assert!(gpu_str.contains("Intel UHD Graphics 630"));
+    assert!(gpu_str.contains("Radeon Pro 560X"));
+
+    assert!(ports.known_layout);
+    assert_eq!(ports.ports.len(), 5);
+}
+
 #[test]
 fn test_linux_psi_parser_logic() {
     // Test the parsing string logic for Linux pressure

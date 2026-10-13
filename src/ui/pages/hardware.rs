@@ -64,26 +64,38 @@ fn render_system_card(app: &App, snapshot: &Snapshot, area: Rect, buf: &mut Buff
             hw.chip
                 .as_deref()
                 .or(snapshot.cpu.brand.as_deref())
-                .unwrap_or("Apple Silicon"),
+                .unwrap_or("Processor"),
         ),
         (
             "CPU Cores",
             &hw.cores
                 .map(|c| {
-                    format!(
-                        "{} ({}P + {}E)",
-                        c.total,
-                        c.performance.unwrap_or(0),
-                        c.efficiency.unwrap_or(0)
-                    )
+                    if let Some(e) = c.efficiency {
+                        format!("{} ({}P + {}E)", c.total, c.performance.unwrap_or(0), e)
+                    } else if let Some(p) = c.performance {
+                        if p < c.total {
+                            format!("{} ({}C / {}T)", c.total, p, c.total)
+                        } else {
+                            format!("{} Cores", c.total)
+                        }
+                    } else {
+                        format!("{} Cores", c.total)
+                    }
                 })
                 .unwrap_or_else(|| format!("{}", snapshot.cpu.cores.len())),
         ),
         (
-            "GPU Cores",
-            &hw.gpu_cores
-                .map(|g| format!("{g} Cores"))
-                .unwrap_or_else(|| "Integrated".into()),
+            "Graphics",
+            hw.gpu
+                .as_deref()
+                .or_else(|| {
+                    if hw.gpu_cores.is_some() {
+                        None
+                    } else {
+                        Some("Integrated GPU")
+                    }
+                })
+                .unwrap_or("Integrated GPU"),
         ),
         (
             "Memory",
